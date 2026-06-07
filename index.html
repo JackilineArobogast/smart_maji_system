@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartMaji - Water Payment Portal</title>
+    <style>
+        /* Base page styling */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        /* Central wrapper box */
+        .main-box {
+            background: #ffffff;
+            width: 100%;
+            max-width: 400px;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0px 4px 12px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            color: #0275d8;
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+
+        /* Input field formatting */
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        /* Standard primary action button */
+        .btn {
+            width: 100%;
+            background-color: #0275d8;
+            color: white;
+            padding: 12px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            background-color: #01549b;
+        }
+
+        /* Notice text for errors */
+        .error-text {
+            color: red;
+            font-size: 14px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        /* Customer statement card */
+        .statement-card {
+            background-color: #f9f9f9;
+            border-left: 5px solid #0275d8;
+            padding: 12px;
+            margin-bottom: 15px;
+        }
+
+        .statement-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        /* Helper styles to change visibility */
+        .page-view {
+            display: block;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .success-message {
+            text-align: center;
+            color: green;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main-box">
+        
+        <div id="view-login" class="page-view">
+            <h2>SmartMaji Portal</h2>
+            <form id="form-login">
+                <div class="input-group">
+                    <label>Meter Number</label>
+                    <input type="text" id="input-meter" placeholder="Enter meter number" required>
+                </div>
+                <div class="input-group">
+                    <label>Password</label>
+                    <input type="password" id="input-pass" placeholder="Enter your password" required>
+                    <p id="error-login" class="error-text">Wrong meter number or password.</p>
+                </div>
+                <button type="submit" class="btn">Verify Account</button>
+            </form>
+        </div>
+
+        <div id="view-payment" class="hidden">
+            <h2>Account Details</h2>
+            <div class="statement-card">
+                <div class="statement-row">
+                    <span><strong>Customer Name:</strong></span>
+                    <span id="display-name"></span>
+                </div>
+                <div class="statement-row">
+                    <span><strong>Meter ID:</strong></span>
+                    <span id="display-meter"></span>
+                </div>
+                <div class="statement-row">
+                    <span><strong>Total Bill Amount:</strong></span>
+                    <span id="display-bill" style="color: red; font-weight: bold;"></span>
+                </div>
+            </div>
+
+            <form id="form-payment">
+                <div class="input-group">
+                    <label>Choose Payment Operator</label>
+                    <select id="select-provider" required>
+                        <option value="">-- Choose Operator --</option>
+                        <option value="M-Pesa">M-Pesa</option>
+                        <option value="Tigo Pesa">Tigo Pesa</option>
+                        <option value="Airtel Money">Airtel Money</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Mobile Money Number</label>
+                    <input type="tel" id="input-phone" placeholder="e.g. 0712345678" required>
+                </div>
+                <button type="submit" class="btn">Confirm & Pay</button>
+            </form>
+        </div>
+
+        <div id="view-success" class="hidden">
+            <div class="success-message">
+                <h3>Payment Done!</h3>
+                <p>Your water bill payment was processed successfully.</p>
+                <p>A message confirmation will be sent shortly.</p>
+                <button class="btn" style="background-color: #666; margin-top: 15px;" onclick="window.location.reload()">Finish</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Local accounts database (Mock Data)
+        const accountsData = {
+            "W-1234": { password: "piga_maji_123", name: "John Ally", bill: "25,500 TZS" },
+            "W-5678": { password: "password123", name: "Dr. Arobogast", bill: "14,000 TZS" }
+        };
+
+        // Getting DOM elements
+        const loginForm = document.getElementById('form-login');
+        const paymentForm = document.getElementById('form-payment');
+
+        const loginView = document.getElementById('view-login');
+        const paymentView = document.getElementById('view-payment');
+        const successView = document.getElementById('view-success');
+
+        const meterField = document.getElementById('input-meter');
+        const passField = document.getElementById('input-pass');
+        const loginErrNotice = document.getElementById('error-login');
+
+        // Form Submission 1: Verify Credentials
+        loginForm.addEventListener('submit', function(event) {
+            event.preventDefault(); // Stop page reload
+
+            const currentMeter = meterField.value.trim();
+            const currentPass = passField.value;
+
+            // Check if user entry matches any record in database
+            if (accountsData[currentMeter] && accountsData[currentMeter].password === currentPass) {
+                const activeUser = accountsData[currentMeter];
+
+                // Inject user details into statement view
+                document.getElementById('display-name').innerText = activeUser.name;
+                document.getElementById('display-meter').innerText = currentMeter;
+                document.getElementById('display-bill').innerText = activeUser.bill;
+
+                // Move from login view to statement view
+                loginView.className = "hidden";
+                paymentView.className = "page-view";
+                loginErrNotice.style.display = "none";
+            } else {
+                // Show manual error notice
+                loginErrNotice.style.display = "block";
+            }
+        });
+
+        // Form Submission 2: Simulating Payment
+        paymentForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            // Transition from payment view to success screen
+            paymentView.className = "hidden";
+            successView.className = "page-view";
+        });
+    </script>
+</body>
+</html>
+
+
+
+
